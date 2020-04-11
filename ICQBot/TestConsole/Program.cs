@@ -6,7 +6,9 @@ namespace TestConsole
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            ICQBot.Bot bot = new ICQBot.Bot("");
+            bot.StartPolling();
+            Console.ReadKey();
         }
     }
 }
