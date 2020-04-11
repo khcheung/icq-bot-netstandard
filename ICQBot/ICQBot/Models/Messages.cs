@@ -9,5 +9,5 @@ namespace ICQBot.Models
     {
         [JsonProperty("msgId")]
         public String MessageId { get; set; }
-    }
+    }    
 }

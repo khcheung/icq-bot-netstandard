@@ -12,6 +12,9 @@ namespace ICQBot
     {
         private String mBotToken = null;
         private String mAPIUrl = "https://api.icq.net/bot/v1";
+
+        public event EventHandler<Models.ICQEventArgs<Models.NewMessageEvent>> NewMessage;
+
         public Bot(String botToken)
         {
             this.mBotToken = botToken;
@@ -26,7 +29,7 @@ namespace ICQBot
                 Dictionary<String, String> parameters = new Dictionary<string, string>();
                 parameters.Add("token", mBotToken);
                 parameters.Add("lastEventId", lastEventId.ToString());
-                parameters.Add("pollTime", "30");
+                parameters.Add("pollTime", "60");
 
                 HttpClient client = new HttpClient();
                 while (true)
@@ -47,11 +50,14 @@ namespace ICQBot
 
                                 foreach (var e in responseObject.Items)
                                 {
-                                    switch(e.EventType)
+                                    switch (e.EventType)
                                     {
                                         case Models.EventItemType.newMessage:
                                             var newMessage = JsonConvert.DeserializeObject<Models.NewMessageEvent>(e.Payload.Value.ToString());
-                                            await this.SendMessageText(newMessage.Chat.ChatId, $"Re: {newMessage.Text}");
+                                            this.NewMessage?.Invoke(this, new Models.ICQEventArgs<Models.NewMessageEvent>()
+                                            {
+                                                Event = newMessage
+                                            });
                                             break;
                                     }
                                 }
@@ -63,7 +69,7 @@ namespace ICQBot
         }
 
 
-        public async Task SendMessageText(String chatId, String text)
+        public async Task SendMessageText(String chatId, String text, Models.InlineKeyboard[] inlineKeyboards = null)
         {
             HttpClient client = new HttpClient();
 
@@ -73,10 +79,14 @@ namespace ICQBot
             parameters.Add("token", mBotToken);
             parameters.Add("chatId", chatId);
             parameters.Add("text", text);
+            if (inlineKeyboards != null)
+            {
+                parameters.Add("inlineKeyboardMarkup", JsonConvert.SerializeObject(new object[] { inlineKeyboards }));
+            }
 
             var query = String.Join("&", parameters.Where(kv => !String.IsNullOrEmpty(kv.Value)).Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}").ToArray());
             var response = await client.GetAsync($"{url}?{query}");
-            var responseString = await response.Content.ReadAsStringAsync();            
+            var responseString = await response.Content.ReadAsStringAsync();
             var responseObject = JsonConvert.DeserializeObject<Models.SendMessageTextResponse>(responseString);
 
 
